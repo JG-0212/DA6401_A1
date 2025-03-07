@@ -1,0 +1,35 @@
+program: train.py
+name: testsweep
+method: random
+metric:
+  goal: minimize
+  name: validation_loss
+parameters:
+  learning_rate:
+    distribution: uniform
+    min: 0.0001
+    max: 0.1
+  momentum:
+    distribution: uniform
+    min: 0.1
+    max: 0.9
+  batch_size:
+    values: [10, 20, 30]
+  epochs:
+    values: [100, 200, 300]
+  activation:
+    values: ["tanh", "sigmoid"]
+  optimizer:
+    values: ["gd", "mgd", "nag"]
+
+# Ensure it runs using your virtual environment
+command:
+  - dl_env\Scripts\python.exe
+  - ${program}  
+  # - --learning_rate=${learning_rate}
+  # - --momentum=${momentum}
+  # - --batch_size=${batch_size}
+  # - --epochs=${epochs}
+  # - --activation=${activation}
+  # - --optimizer=${optimizer}
+
