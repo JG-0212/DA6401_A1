@@ -1,20 +1,15 @@
 import numpy as np
 from Optimizers import *
+from Activations import *
 import wandb
 
-def sigmoid(x):
-    return 1/(1+np.exp(-x))
-
-def softmax(x):
-    ex = np.exp(x)
-    den = np.sum(ex)
-    return ex/den
 
 class MyNeuralNetwork:
     def __init__(self, n_features, hidden_sizes, n_classes):
         '''
         Class constructor with default network hyperparameters
         '''
+        self.loss = 'cross_entropy'
         self.n_features = n_features       #input size
         self.hidden_sizes = hidden_sizes   #number of neurons in hidden layers
         self.n_classes = n_classes         #output size
@@ -26,16 +21,36 @@ class MyNeuralNetwork:
         self.o_activation = softmax
 
         self.batch_size = None
-        self.optimizer_name = 'nag'
-        self.optimizer = Fast_GD(learning_rate= 1e-3, beta = 1e-1)
+        self.optimizer_name = 'sgd'
+        self.optimizer = GD
     
-    def params_init(self, way = "random"):
+    def params_init(self,weights = None, biases = None, way = "random", seed = 42):
+        '''
+        Function to initialise weights and biases
+        '''
+        np.random.seed(42)
         if way == "random":
             neurons_prev = self.n_features
             for neurons_cur in self.hidden_sizes:
                 self.weights.append(np.random.randn(neurons_cur,neurons_prev))
-                self.biases.append(np.random.randn(neurons_cur,1))
+                self.biases.append(np.zeros((neurons_cur,1)))
                 neurons_prev = neurons_cur
+        elif way == "Xavier":
+            #normal xavier
+            neurons_prev = self.n_features
+            for neurons_cur in self.hidden_sizes:
+                sigma = np.sqrt(2/neurons_prev)
+                self.weights.append(np.random.randn(neurons_cur,neurons_prev)*sigma)
+                self.biases.append(np.zeros((neurons_cur,1)))
+                neurons_prev = neurons_cur
+        
+        elif way =="Custom":
+            neurons_prev = self.n_features
+            for i,neurons_cur in enumerate(self.hidden_sizes):
+                self.weights.append(weights[i])
+                self.biases.append(biases[i])
+                neurons_prev = neurons_cur
+
 
     def update_network_hp(self,**kwargs):
         '''
@@ -54,172 +69,135 @@ class MyNeuralNetwork:
 
     def feed_forward(self,input):
         '''
-        This function does a forward pass
+        This function does a forward pass and returns the output probabilities, activations and pre_activations for a data point 
 
-        Arguments:
-            input   : Input vector of size (n_features,1)
-        
-        Returns:
-            out     : An output vector of probabilities of shape (n_classes,1)
-            a_all   : All intermediate pre_activations
-            h_all   : All intermediate activations
-            
+        input : (n_samples, n_features) 
+        out : (n_samples, n_classes)
         '''
         a_all = []
         h_all = []
-        h = input.reshape(-1,1)
+        h = input.T  #(n_features, n_samples) 
         for i in np.arange(len(self.biases)-1):
-            assert (self.weights[i]@h).reshape(-1,1).shape == self.biases[i].shape
-            a = (self.weights[i]@h).reshape(-1,1)+self.biases[i]
-            a_all.append(a)
-            h = self.g_activation(a)
-            h_all.append(h)
+            a = self.weights[i]@h+self.biases[i].reshape(-1,1)  #(n_cur,n_prev)@(n_prev,n_samples) + (n_cur,1)
+            a_all.append(a)   #(n_cur,n_samples)
+            h = self.g_activation(a) 
+            assert h.shape == a.shape
+            h_all.append(h) #(n_cur,n_samples)
 
-        assert (self.weights[-1]@h).reshape(-1,1).shape == self.biases[-1].shape
-        a = self.weights[-1]@h+self.biases[-1]
-        # print("Sizes of all elements in a_all")
-        # for i in a_all:
-        #     print(i.shape,end = " ")
-        # print()
-        # print("Sizes of all elements in h_all")
-        # for i in h_all:
-        #     print(i.shape,end = " ")
-        out = self.o_activation(a)
+        a = self.weights[-1]@h+self.biases[-1].reshape(-1,1)   #(n_classes, n_samples)
+        out = self.o_activation(a).T  #(n_classes, n_samples).T
+        assert out.shape == (input.shape[0],self.n_classes)
         return out,a_all,h_all
 
-    def compute_gradient(self, input, true_dist, y_hat, a_all, h_all,w_lookahead = None):
+    def  backprop(self, input, true_dist, y_hat, a_all, h_all,w_lookahead = None):
         '''
-        This function does feed_forward and back_propagation
+        This function does back_propagation and gives the weight and bias gradients for a data point      
 
-        Arguments:
-            input   : Input vector of size (n_features,1)
-            true_dist : The true distribution of the input (one hot encoded in the correct class) of size (n_classes,1)
-            y_hat     : An output vector of probabilities of shape (n_classes,1)
-            a_all   : All intermediate pre_activations
-            h_all   : All intermediate activations
-            w_lookahead : Relevant for NAG
-        
-        Returns:
-            weight_grads : list of gradients of weights of each layer
-            bias_grads   : list of gradients of biases of each layer
-            
+        input : (n_samples, n_features)
+        true_distn : (n_samples, n_classes)
+        y_hat : (n_samples, n_classes)      
         '''
         weight_grads = []
         bias_grads = []
-        true_dist = true_dist.reshape(-1,1)  #converting row to column
+        true_dist = true_dist.T  #(n_classes, n_samples)
+        y_hat = y_hat.T          #(n_classes, n_samples)
         assert true_dist.shape == y_hat.shape 
-        cur_a_grad = -(true_dist-y_hat)  #(n_classes,1)
-        delta = 1e-3 #derivative helper
+        if self.loss == 'cross_entropy':
+            cur_a_grad = -(true_dist-y_hat)  #(n_classes,n_samples)
+        elif self.loss == 'mean_squared_error':
+            cur_a_grad = -(true_dist-y_hat)*(y_hat)*(1-y_hat)  #(n_classes,n_samples)
 
-        #len(self.biases) = 3
-        #size of h_all is 2 starting as feed to 1st hidden layer and ending at feed to last hidden layer, final a is for output
-        #w0 connects input to 1st hidden, w1 connects 1st hidden to 2nd hidden, w2 connects 2nd hidden to output
         for i in np.arange(len(self.biases))[::-1]:
             
-            prev_h = h_all[i-1] if i!=0 else input.reshape(-1,1)
-            weight_grads.append(cur_a_grad@(prev_h.T))  # (neurons_next,1)@(1,neurons_prev)
-            bias_grads.append(cur_a_grad)                 # (neurons_next,1)
+            prev_h = h_all[i-1] if i!=0 else input.T   #(n_prev, n_samples)
+            weight_grads.append(cur_a_grad@(prev_h.T))  # (n_next,n_samples)@(n_samples,neurons_prev)
+            bias_grads.append(np.sum(cur_a_grad,axis = 1).reshape(-1,1))                 # (n_next,1)
+
             if w_lookahead is None:
-                prev_h_grad = ((self.weights[i].T)@cur_a_grad).reshape(-1,1)    # (neurons_next, neurons_prev).T@(neurons_next,1)
+                prev_h_grad = ((self.weights[i].T)@cur_a_grad)    # (n_next, n_prev).T@(n_next,n_samples) = 
             else:
+                #Handling lookahead cases
                 assert self.weights[i].shape == w_lookahead[i].shape
-                prev_h_grad = (((self.weights[i]+w_lookahead[i]).T)@cur_a_grad).reshape(-1,1)
+                prev_h_grad = (((self.weights[i]+w_lookahead[i]).T)@cur_a_grad)  # (n_prev, n_samples)
             
             if i==0:
                 break
-            del_g = (self.g_activation(a_all[i-1]+delta)-self.g_activation(a_all[i-1]))/delta   # (neurons_next,1)
-            prev_a_grad = prev_h_grad*del_g  #(neurons_next,1)
+
+            del_g = D_ACTIVATIONS_MAP[self.g_activation](a_all[i-1])   # (n_prev,n_samples)
+            prev_a_grad = prev_h_grad*del_g  #(n_prev,n_samples)
             cur_a_grad = prev_a_grad
-        #because we come in the opposite order
+
         weight_grads.reverse()
         bias_grads.reverse()
-        # print(f"The size of w gradients {len(weight_grads)}")
-        # print(f"The size of b gradients {len(bias_grads)}")
-        # for i in weight_grads:
-        #     print(i.shape,end = " ")
-        # print()
+
+        for i in range(len(self.weights)):
+            assert weight_grads[i].shape == self.weights[i].shape
+            assert bias_grads[i].shape == self.biases[i].shape
         return weight_grads, bias_grads
 
-    def train(self, X_train, y_train, X_valid, y_valid, epochs):
-        batch_size = X_train.shape[0] if self.batch_size is None else self.batch_size
-        if self.optimizer_name == 'nag' or self.optimizer_name == 'mgd':
-            for sw,sb in zip(self.weights,self.biases):
-                self.optimizer.uw.append(np.zeros_like(sw))
-                self.optimizer.ub.append(np.zeros_like(sb))
-                
+    def train(self, X_train, y_train, X_valid, y_valid, epochs = 30):
+        '''
+        This function trains a neural network and learns the parameters
+        '''
+        batch_size = X_train.shape[0] if self.batch_size is None else self.batch_size                
         for epoch in range(epochs):
-            loss = []
-            right_preds = 0
+            epsilon =1e-8
+            
+            y_hat_t,_,_ = self.feed_forward(X_train)  #(n_samples, n_classes)
+            y_hat_v,_,_ = self.feed_forward(X_valid)
+
+            if self.loss == 'cross_entropy':
+                train_loss = -np.mean(np.sum(y_train*np.log(y_hat_t+epsilon),axis = 1))
+                valid_loss = -np.mean(np.sum(y_valid*np.log(y_hat_v+epsilon),axis = 1))
+            elif self.loss == 'mean_squared_error':
+                train_loss = np.mean(np.sum(np.square(y_train-y_hat_t),axis = 1))
+                valid_loss = np.mean(np.sum(np.square(y_valid-y_hat_v),axis = 1))
+            
+            train_acc = np.mean(np.argmax(y_train,axis = 1) == np.argmax(y_hat_t,axis = 1))
+            valid_acc = np.mean(np.argmax(y_valid,axis = 1) == np.argmax(y_hat_v,axis = 1))
+            
+            try:
+                wandb.log(
+                    {
+                        "epoch": epoch,
+                        "train_acc": train_acc,
+                        "train_loss": train_loss,
+                        "val_acc": valid_acc,
+                        "val_loss": valid_loss,
+                    }
+                )
+            except Exception:
+                pass
+
+            print(f"Epoch {epoch}, T_Loss: {np.mean(train_loss)}, T_acc: {train_acc}",end = ', ')
+            print(f"V_Loss: {np.mean(valid_loss)}, V_acc: {valid_acc}")
+
             batch_start = 0
             while batch_start <= X_train.shape[0]-1 :
                 X_batch = X_train[batch_start:batch_start + batch_size,:]
                 y_batch = y_train[batch_start:batch_start + batch_size,:]
                 batch_start += batch_size
-                dw_batch = []
-                db_batch = []
-                for input,true_dist in zip(X_batch,y_batch):
-                    y_hat,a_all,h_all = self.feed_forward(input)
-                    input = input.reshape(-1,1)
-                    true_dist = true_dist.reshape(-1,1)  #changing column to row
-                    if self.optimizer_name == 'nag':
-                        uw = self.optimizer.uw
-                        beta = self.optimizer.beta
-                        for i in range(len(uw)):
-                            assert uw[i].shape == self.weights[i].shape
-                            uw[i] = -beta*uw[i]   #we don't use biases in gradient, so lite
-                        
-                        dw, db = self.compute_gradient(input,true_dist,y_hat,a_all,h_all, w_lookahead=uw)
-                    else:
-                        dw, db = self.compute_gradient(input,true_dist,y_hat,a_all,h_all)                   
-                    if not dw_batch:
-                        dw_batch = dw
-                        db_batch = db
-                    else:
-                        assert len(dw_batch) == len(dw)
-                        for i in range(len(dw_batch)):
-                            assert dw_batch[i].shape == dw[i].shape
-                            dw_batch[i] += dw[i]
-                            assert db_batch[i].shape == db[i].shape
-                            db_batch[i] += db[i]
+
+                y_hat, a_all, h_all = self.feed_forward(X_batch)
+                
+                #Handling Nesterov to create lookahead step
+                if self.optimizer_name == 'nag':
+                    uw = self.optimizer.uw
+                    beta = self.optimizer.beta
+                    wla = []
+                    for i in range(len(self.weights)):
+                        wla.append(np.zeros_like(self.weights[i]) if not uw else -beta*uw[i]) 
+                    dw_batch, db_batch = self.backprop(X_batch,y_batch,y_hat,a_all,h_all, w_lookahead=wla)
+                else:
+                    dw_batch, db_batch = self.backprop(X_batch,y_batch,y_hat,a_all,h_all)                   
+
+                assert len(dw_batch) == len(self.weights)
+                assert len(db_batch) == len(self.biases)
+
                 self.optimizer.update(self.weights, self.biases, dw_batch,db_batch)
                 
-            train_loss, val_loss = [], []
-            train_right, val_right = 0,0
-            for input,true_dist in zip(X_train, y_train):
-                y_hat,_,_ = self.feed_forward(input)
-                true_dist = true_dist.reshape(-1,1)
-                train_loss.append(np.sum(np.square(true_dist - y_hat)))
-                train_right += (np.argmax(true_dist)==np.argmax(y_hat))
-
-            for input,true_dist in zip(X_valid, y_valid):
-                y_hat,_,_ = self.feed_forward(input)
-                true_dist = true_dist.reshape(-1,1)
-                val_loss.append(np.sum(np.square(true_dist - y_hat)))
-                val_right += (np.argmax(true_dist)==np.argmax(y_hat))
-            
-            train_acc = train_right*(1.0)/y_train.shape[0]
-            val_acc = val_right*(1.0)/y_valid.shape[0]
-
-            wandb.log(
-                {
-                    "epoch": epoch,
-                    "train_acc": train_acc,
-                    "train_loss": np.mean(train_loss),
-                    "val_acc": val_acc,
-                    "val_loss": np.mean(val_loss),
-                }
-            )
-
-            if epoch % int(epochs/10) == 0:
-                print(f"Epoch {epoch}, T_Loss: {np.mean(train_loss)}, T_acc: {train_acc}",end = ', ')
-                print(f"V_Loss: {np.mean(val_loss)}, V_acc: {val_acc}")
-        try:
-            self.optimizer.clear_history()
-        except Exception as e:
-            pass            
+        self.optimizer.clear_history()           
 
     def predict(self, X):
-        y = []
-        for input in X:
-            y.append(self.feed_forward(input))
-        return np.stack(y)
+        y_hat,_,_ = self.feed_forward(X)
+        return y_hat

@@ -1,5 +1,5 @@
 program: tune.py
-name: full_data_sweep
+name: hp_tune_sweep_fine_recent
 project: DA6401
 entity: jayagowtham-indian-institute-of-technology-madras
 method: bayes
@@ -8,15 +8,15 @@ metric:
   name: val_acc
 parameters:
   num_layers:
-    values: [3,4,5]
+    values: [3,4,5,6]
   hidden_size:
-    values: [32,64,128]
+    values: [128,256,512]
   weight_decay:
-    values: [0,5e-4,5e-1]
+    values: [0,5e-4]
   learning_rate:
-    values: [1e-3, 1e-4]
+    values: [1e-3, 1e-2]
   batch_size:
-    values: [16, 32, 64]
+    values: [64,128]
   beta:
     values: [0.9]
   beta1:
@@ -26,13 +26,13 @@ parameters:
   epsilon:
     values: [1e-6]
   epochs:
-    values: [5,10]
+    values: [10,15,20]
   activation:
-    values: ["tanh", "sigmoid", "ReLU"]
+    values: ["sigmoid", "ReLU"]
   weight_init:
-    values: ["random", "Xavier"]
+    values: ["random"]
   optimizer:
-    values: ["sgd", "momentum", "nag","rmsprop","adam","nadam"]
+    values: ["adam","nadam"]
 
 # Ensure it runs using your virtual environment
 command:
