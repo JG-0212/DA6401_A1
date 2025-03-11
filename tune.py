@@ -10,7 +10,7 @@ if __name__ == '__main__':
     #Loading and processing the data
     (train_images, train_labels), (test_images, test_labels)   =  load_data(name = 'fashion_mnist')
     train_images, train_labels, valid_images, valid_labels = split_validation(train_images, train_labels, valid_size=0.1, seed = 42)
-    # train_images, train_labels,_,_ = split_validation(train_images, train_labels, valid_size=0.95, seed = 42)
+    train_images, train_labels,_,_ = split_validation(train_images, train_labels, valid_size=0.95, seed = 42)
     X_train, X_valid, X_test = preprocess(train_images), preprocess(valid_images), preprocess(test_images)
     y_train, y_valid, y_test = one_hot_encoded(train_labels), one_hot_encoded(valid_labels), one_hot_encoded(test_labels)
 
@@ -52,7 +52,10 @@ if __name__ == '__main__':
 
     network_hp = {'batch_size': bs, 'g_activation': ACTIVATIONS_MAP[g_activation]}
     mynn = MyNeuralNetwork(n_features, hidden_sizes, n_classes)
-    mynn.params_init(way = winit)
+   
     mynn.update_network_hp(**network_hp)  
-    mynn.update_optim_hp(optimizer_name,**optim_hp)    
+    mynn.update_optim_hp(optimizer_name,**optim_hp)  
+    mynn.params_init(way = winit)  
     mynn.train(X_train,y_train,X_valid,y_valid,epochs = epochs)
+
+    mynn.clear_opt_history()

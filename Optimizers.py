@@ -27,10 +27,6 @@ class Fast_GD:
     def update(self, weights, biases, weight_gradients, bias_gradients):
 
         for i in range(len(weights)):
-            # print(len(self.uw))
-            # print(len(weight_gradients))
-            # print(len(self.ub))
-            # print(len(bias_gradients))
             if len(self.uw)!=len(weight_gradients):
                 self.uw.append(weight_gradients[i])
                 self.ub.append(bias_gradients[i])
@@ -100,12 +96,14 @@ class Adam:
             weights[i] -= self.learning_rate*mw_bias_corrected/(np.sqrt(vw_bias_corrected)+self.epsilon) + self.learning_rate*self.alpha*weights[i]
             biases[i] -= self.learning_rate*mb_bias_corrected/(np.sqrt(vb_bias_corrected)+self.epsilon) 
 
+            self.time += 1
+
     def clear_history(self):
         self.mw = []
         self.mb = []
         self.vw = []
         self.vb = []
-        self.time +=1
+        self.time = 1
 
 class NAdam:
     def __init__(self,learning_rate = 1e-3,beta_m = 0.9,beta_v = 0.99,alpha = 0.1,epsilon = 1e-6):
@@ -113,9 +111,9 @@ class NAdam:
         self.beta_m = beta_m
         self.beta_v = beta_v
         self.alpha = alpha
-        self.time = 1
         self.mw, self.mb =[], []
         self.vw, self.vb = [], []
+        self.time = 1
         self.epsilon = epsilon
 
     def update(self, weights, biases, weight_gradients, bias_gradients):
@@ -131,24 +129,23 @@ class NAdam:
                 self.vw[i] = self.beta_v*self.vw[i] + (1-self.beta_v)*(weight_gradients[i]**2)  
                 self.vb[i] = self.beta_v*self.vb[i] + (1-self.beta_v)*(bias_gradients[i]**2)    
 
-            mw_bias_corrected, mb_bias_corrected = self.mw[i]/(1-pow(self.beta_m,self.time)), self.mb[i]/(1-pow(self.beta_m,self.time))
-            vw_bias_corrected, vb_bias_corrected = self.vw[i]/(1-pow(self.beta_v,self.time)), self.vb[i]/(1-pow(self.beta_v,self.time)) 
+            mw_bias_corrected, mb_bias_corrected = self.mw[i]/(1-pow(self.beta_m,self.time+1)), self.mb[i]/(1-pow(self.beta_m,self.time+1))
+            vw_bias_corrected, vb_bias_corrected = self.vw[i]/(1-pow(self.beta_v,self.time+1)), self.vb[i]/(1-pow(self.beta_v,self.time+1)) 
 
-            w_lookahead = weight_gradients[i]/((1-pow(self.beta_m,self.time+1)))
-            b_lookahead = bias_gradients[i]/((1-pow(self.beta_m,self.time+1)))
-
-            w_update = (1-self.beta_m)*w_lookahead + self.beta_m*mw_bias_corrected
-            b_update = (1-self.beta_m)*b_lookahead + self.beta_m*mb_bias_corrected
+            w_update = (1-self.beta_m)*weight_gradients[i]/((1-pow(self.beta_m,self.time+1))) + self.beta_m*mw_bias_corrected
+            b_update = (1-self.beta_m)*bias_gradients[i]/((1-pow(self.beta_m,self.time+1))) + self.beta_m*mb_bias_corrected
 
             weights[i] -= self.learning_rate*w_update/(np.sqrt(vw_bias_corrected)+self.epsilon) + self.learning_rate*self.alpha*weights[i]
             biases[i] -= self.learning_rate*b_update/(np.sqrt(vb_bias_corrected)+self.epsilon) 
+
+            self.time += 1
 
     def clear_history(self):
         self.mw = []
         self.mb = []
         self.vw = []
         self.vb = []
-        self.time += 1
+        self.time = 1
 
 OPTIMIZER_MAP = {
     'sgd': GD,

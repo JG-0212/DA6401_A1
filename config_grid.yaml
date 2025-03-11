@@ -1,22 +1,22 @@
 program: tune.py
-name: corrected_sweep
+name: corrected_sweep_grid
 project: DA6401
 entity: jayagowtham-indian-institute-of-technology-madras
-method: bayes
+method: grid
 metric:
   goal: maximize
   name: val_acc
 parameters:
   num_layers:
-    values: [3,5,7]
+    values: [3,4,5]
   hidden_size:
-    values: [32,64,128]
+    values: [512]
   weight_decay:
-    values: [0,5e-4,5e-1]
+    values: [0,5e-4,5e-2]
   learning_rate:
-    values: [1e-3, 1e-4]
+    values: [1e-4]
   batch_size:
-    values: [16, 32, 64]
+    values: [128]
   beta:
     values: [0.9]
   beta1:
@@ -26,13 +26,13 @@ parameters:
   epsilon:
     values: [1e-6]
   epochs:
-    values: [5,10]
+    values: [20,25,30]
   activation:
-    values: ["tanh", "sigmoid", "ReLU"]
+    values: ["tanh"]
   weight_init:
-    values: ["random", "Xavier"]
+    values: ["Xavier"]
   optimizer:
-    values: ["sgd", "momentum", "nag","rmsprop","adam","nadam"]
+    values: ["nadam"]
 
 # Ensure it runs using your virtual environment
 command:

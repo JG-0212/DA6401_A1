@@ -1,5 +1,5 @@
 program: tune.py
-name: hp_tune_sweep_fine_recent
+name: corrected_sweep_fine
 project: DA6401
 entity: jayagowtham-indian-institute-of-technology-madras
 method: bayes
@@ -8,15 +8,15 @@ metric:
   name: val_acc
 parameters:
   num_layers:
-    values: [3,4,5,6]
+    values: [3,4,5]
   hidden_size:
-    values: [128,256,512]
+    values: [256,512,1024]
   weight_decay:
-    values: [0,5e-4]
+    values: [0,5e-4,0.5]
   learning_rate:
-    values: [1e-3, 1e-2]
+    values: [1e-5, 1e-4]
   batch_size:
-    values: [64,128]
+    values: [64,128,512]
   beta:
     values: [0.9]
   beta1:
@@ -28,9 +28,9 @@ parameters:
   epochs:
     values: [10,15,20]
   activation:
-    values: ["sigmoid", "ReLU"]
+    values: ["tanh"]
   weight_init:
-    values: ["random"]
+    values: ["Xavier"]
   optimizer:
     values: ["adam","nadam"]
 

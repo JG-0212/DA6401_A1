@@ -1,14 +1,14 @@
 import numpy as np
 
 def sigmoid(x):
-    x = np.clip(x,-300,300)
+    x = np.clip(x,-500,500)
     return np.exp(x)/(1+np.exp(x)) 
 
 def d_sigmoid(x):
     return sigmoid(x)*(1-sigmoid(x))
 
 def tanh(x):
-    x = np.clip(x,-300,300)
+    x = np.clip(x,-250,250)
     return (np.exp(2*x)-1)/(np.exp(2*x)+1) 
 
 def d_tanh(x):
@@ -24,7 +24,7 @@ def identity(x):
     return x
 
 def d_identity(x):
-    return 1
+    return np.ones_like(x)
 
 def softmax(x):
     ex = np.exp(x-np.max(x,axis = 0))

@@ -28,19 +28,19 @@ class MyNeuralNetwork:
         '''
         Function to initialise weights and biases
         '''
-        np.random.seed(42)
+        r = np.random.RandomState(seed)
         if way == "random":
             neurons_prev = self.n_features
             for neurons_cur in self.hidden_sizes:
-                self.weights.append(np.random.randn(neurons_cur,neurons_prev))
+                self.weights.append(r.randn(neurons_cur,neurons_prev)*0.05)
                 self.biases.append(np.zeros((neurons_cur,1)))
                 neurons_prev = neurons_cur
         elif way == "Xavier":
             #normal xavier
             neurons_prev = self.n_features
             for neurons_cur in self.hidden_sizes:
-                sigma = np.sqrt(2/neurons_prev)
-                self.weights.append(np.random.randn(neurons_cur,neurons_prev)*sigma)
+                sigma = np.sqrt(2/neurons_prev) if self.g_activation == 'ReLU' else np.sqrt(1/neurons_prev)
+                self.weights.append(r.randn(neurons_cur,neurons_prev)*sigma)
                 self.biases.append(np.zeros((neurons_cur,1)))
                 neurons_prev = neurons_cur
         
@@ -84,7 +84,7 @@ class MyNeuralNetwork:
             assert h.shape == a.shape
             h_all.append(h) #(n_cur,n_samples)
 
-        a = self.weights[-1]@h+self.biases[-1].reshape(-1,1)   #(n_classes, n_samples)
+        a = self.weights[len(self.weights)-1]@h+self.biases[len(self.biases)-1].reshape(-1,1)   #(n_classes, n_samples)
         out = self.o_activation(a).T  #(n_classes, n_samples).T
         assert out.shape == (input.shape[0],self.n_classes)
         return out,a_all,h_all
@@ -134,44 +134,48 @@ class MyNeuralNetwork:
             assert weight_grads[i].shape == self.weights[i].shape
             assert bias_grads[i].shape == self.biases[i].shape
         return weight_grads, bias_grads
+    
+    def print_metrics(self, X_train, y_train, X_valid, y_valid, epoch, log = False):
+        epsilon =1e-8
+        
+        y_hat_t,_,_ = self.feed_forward(X_train)  #(n_samples, n_classes)
+        y_hat_v,_,_ = self.feed_forward(X_valid)
+
+        if self.loss == 'cross_entropy':
+            train_loss = -np.mean(np.sum(y_train*np.log(y_hat_t+epsilon),axis = 1))
+            valid_loss = -np.mean(np.sum(y_valid*np.log(y_hat_v+epsilon),axis = 1))
+        elif self.loss == 'mean_squared_error':
+            train_loss = np.mean(np.sum(np.square(y_train-y_hat_t),axis = 1))
+            valid_loss = np.mean(np.sum(np.square(y_valid-y_hat_v),axis = 1))   
+
+            
+        train_acc = np.mean(np.argmax(y_train,axis = 1) == np.argmax(y_hat_t,axis = 1))
+        valid_acc = np.mean(np.argmax(y_valid,axis = 1) == np.argmax(y_hat_v,axis = 1))
+        print(f"Epoch {epoch}, T_Loss: {np.mean(train_loss)}, T_acc: {train_acc}",end = ', ')
+        print(f"V_Loss: {np.mean(valid_loss)}, V_acc: {valid_acc}")  
+
+        try:
+            wandb.log(
+                {
+                    "epoch": epoch,
+                    "train_acc": train_acc,
+                    "train_loss": train_loss,
+                    "val_acc": valid_acc,
+                    "val_loss": valid_loss,
+                }
+            )
+        except Exception:
+            pass
+
+
 
     def train(self, X_train, y_train, X_valid, y_valid, epochs = 30):
         '''
         This function trains a neural network and learns the parameters
         '''
-        batch_size = X_train.shape[0] if self.batch_size is None else self.batch_size                
-        for epoch in range(epochs):
-            epsilon =1e-8
-            
-            y_hat_t,_,_ = self.feed_forward(X_train)  #(n_samples, n_classes)
-            y_hat_v,_,_ = self.feed_forward(X_valid)
-
-            if self.loss == 'cross_entropy':
-                train_loss = -np.mean(np.sum(y_train*np.log(y_hat_t+epsilon),axis = 1))
-                valid_loss = -np.mean(np.sum(y_valid*np.log(y_hat_v+epsilon),axis = 1))
-            elif self.loss == 'mean_squared_error':
-                train_loss = np.mean(np.sum(np.square(y_train-y_hat_t),axis = 1))
-                valid_loss = np.mean(np.sum(np.square(y_valid-y_hat_v),axis = 1))
-            
-            train_acc = np.mean(np.argmax(y_train,axis = 1) == np.argmax(y_hat_t,axis = 1))
-            valid_acc = np.mean(np.argmax(y_valid,axis = 1) == np.argmax(y_hat_v,axis = 1))
-            
-            try:
-                wandb.log(
-                    {
-                        "epoch": epoch,
-                        "train_acc": train_acc,
-                        "train_loss": train_loss,
-                        "val_acc": valid_acc,
-                        "val_loss": valid_loss,
-                    }
-                )
-            except Exception:
-                pass
-
-            print(f"Epoch {epoch}, T_Loss: {np.mean(train_loss)}, T_acc: {train_acc}",end = ', ')
-            print(f"V_Loss: {np.mean(valid_loss)}, V_acc: {valid_acc}")
-
+        batch_size = X_train.shape[0] if self.batch_size is None else self.batch_size      
+        self.print_metrics(X_train, y_train, X_valid, y_valid, 0, log = False)      
+        for epoch in range(1,epochs+1):
             batch_start = 0
             while batch_start <= X_train.shape[0]-1 :
                 X_batch = X_train[batch_start:batch_start + batch_size,:]
@@ -190,14 +194,16 @@ class MyNeuralNetwork:
                     dw_batch, db_batch = self.backprop(X_batch,y_batch,y_hat,a_all,h_all, w_lookahead=wla)
                 else:
                     dw_batch, db_batch = self.backprop(X_batch,y_batch,y_hat,a_all,h_all)                   
-
                 assert len(dw_batch) == len(self.weights)
                 assert len(db_batch) == len(self.biases)
 
-                self.optimizer.update(self.weights, self.biases, dw_batch,db_batch)
-                
-        self.optimizer.clear_history()           
+                self.optimizer.update(self.weights, self.biases, dw_batch,db_batch)   
+
+            self.print_metrics(X_train, y_train, X_valid, y_valid, epoch, log = True)      
 
     def predict(self, X):
         y_hat,_,_ = self.feed_forward(X)
         return y_hat
+
+    def clear_opt_history(self):
+        self.optimizer.clear_history()   

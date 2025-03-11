@@ -45,49 +45,51 @@ if __name__ == '__main__':
         get_class_sample(train_images, train_labels, class_names=number_names, wb_verbose=True)
 
     #Getting the configutation from wandb sweep
-    # loss = args.loss
-    # num_layers = args.num_layers
-    # hidden_size = args.hidden_size
-    # lr = args.learning_rate
-    # m = args.momentum
-    # beta = args.beta
-    # beta_m = args.beta1
-    # beta_v = args.beta2
-    # alpha = args.weight_decay
-    # winit = args.weight_init
-    # bs = args.batch_size
-    # epochs = args.epochs
-    # optimizer_name = args.optimizer
-    # g_activation = args.activation
-    # epsilon = args.epsilon
+    loss = args.loss
+    num_layers = args.num_layers
+    hidden_size = args.hidden_size
+    lr = args.learning_rate
+    m = args.momentum
+    beta = args.beta
+    beta_m = args.beta1
+    beta_v = args.beta2
+    alpha = args.weight_decay
+    winit = args.weight_init
+    bs = args.batch_size
+    epochs = args.epochs
+    optimizer_name = args.optimizer
+    g_activation = args.activation
+    epsilon = args.epsilon
 
     # #Renaming our run
     run.name = "Sample"
 
-    # #Preparing hyperparameters for our optimizer
-    # if optimizer_name == 'sgd':
-    #     optim_hp = {'learning_rate':lr, 'alpha': alpha}
-    # elif optimizer_name == 'momentum' or optimizer_name == 'nag':
-    #     optim_hp = {'learning_rate':lr, 'beta': m, 'alpha': alpha}
-    # elif optimizer_name == 'rmsprop':
-    #     optim_hp = {'learning_rate':lr, 'beta': beta, 'alpha': alpha, 'epsilon':epsilon}
-    # elif optimizer_name == 'adam' or optimizer_name == 'nadam':
-    #     optim_hp = {'learning_rate':lr, 'beta_m': beta_m, 'beta_v': beta_v, 'alpha':alpha, 'epsilon':epsilon}
+    #Preparing hyperparameters for our optimizer
+    if optimizer_name == 'sgd':
+        optim_hp = {'learning_rate':lr, 'alpha': alpha}
+    elif optimizer_name == 'momentum' or optimizer_name == 'nag':
+        optim_hp = {'learning_rate':lr, 'beta': m, 'alpha': alpha}
+    elif optimizer_name == 'rmsprop':
+        optim_hp = {'learning_rate':lr, 'beta': beta, 'alpha': alpha, 'epsilon':epsilon}
+    elif optimizer_name == 'adam' or optimizer_name == 'nadam':
+        optim_hp = {'learning_rate':lr, 'beta_m': beta_m, 'beta_v': beta_v, 'alpha':alpha, 'epsilon':epsilon}
 
-    # n_features = X_train.shape[1]
-    # n_classes = y_train.shape[1]
-    # hidden_sizes = [hidden_size]*num_layers + [n_classes]
+    n_features = X_train.shape[1]
+    n_classes = y_train.shape[1]
+    hidden_sizes = [hidden_size]*num_layers + [n_classes]
 
-    # network_hp = {'batch_size': bs, 'g_activation': ACTIVATIONS_MAP[g_activation], 'loss': loss}
-    # mynn = MyNeuralNetwork(n_features, hidden_sizes, n_classes)
-    # mynn.params_init(way = winit)
-    # mynn.update_network_hp(**network_hp)  
-    # mynn.update_optim_hp(optimizer_name,**optim_hp)    
-    # mynn.train(X_train,y_train,X_valid,y_valid,epochs = epochs)
+    network_hp = {'batch_size': bs, 'g_activation': ACTIVATIONS_MAP[g_activation], 'loss': loss}
+    mynn = MyNeuralNetwork(n_features, hidden_sizes, n_classes)
+    mynn.update_network_hp(**network_hp)  
+    mynn.update_optim_hp(optimizer_name,**optim_hp)  
+    mynn.params_init(way = winit)  
+    mynn.train(X_train,y_train,X_valid,y_valid,epochs = epochs)
 
-    # #Test performance
-    # y_test_hat = mynn.predict(X_test)
-    # print(f"The accuracy on test set is {np.sum(np.argmax(y_test_hat,axis = 1)==np.argmax(y_test,axis = 1))/y_test.shape[0]}")
+    #Test performance
+    y_test_hat = mynn.predict(X_test)
+    print(f"The accuracy on test set is {np.sum(np.argmax(y_test_hat,axis = 1)==np.argmax(y_test,axis = 1))/y_test.shape[0]}")
 
-    # y_test_hat_ohe = np.eye(y_test_hat.shape[1])[np.argmax(y_test_hat,axis = 1)]
-    # plot_cm(y_test_hat_ohe, y_test, class_names = fashion_names, wb_verbose = True)
+    y_test_hat_ohe = np.eye(y_test_hat.shape[1])[np.argmax(y_test_hat,axis = 1)]
+    plot_cm(y_test_hat_ohe, y_test, class_names = fashion_names, wb_verbose = True)
+
+    mynn.clear_opt_history()
