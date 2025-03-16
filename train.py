@@ -33,7 +33,7 @@ if __name__ == '__main__':
     (train_images, train_labels), (test_images, test_labels)   =  load_data(args.dataset)
     train_images, train_labels, valid_images, valid_labels = split_validation(train_images, train_labels, valid_size=0.1, seed = 42)
 
-    train_images, train_labels,_,_ = split_validation(train_images, train_labels, valid_size=0.95, seed = 42)
+    # train_images, train_labels,_,_ = split_validation(train_images, train_labels, valid_size=0.95, seed = 42)
     X_train, X_valid, X_test = preprocess(train_images), preprocess(valid_images), preprocess(test_images)
     y_train, y_valid, y_test = one_hot_encoded(train_labels), one_hot_encoded(valid_labels), one_hot_encoded(test_labels)    
     wp = args.wandb_project
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     epsilon = args.epsilon
 
     # #Renaming our run
-    run.name = "Sample"
+    run.name = "Full_data_best_hp_run"
 
     #Preparing hyperparameters for our optimizer
     if optimizer_name == 'sgd':

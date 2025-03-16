@@ -32,16 +32,16 @@ class MyNeuralNetwork:
         if way == "random":
             neurons_prev = self.n_features
             for neurons_cur in self.hidden_sizes:
-                self.weights.append(r.randn(neurons_cur,neurons_prev)*0.05)
-                self.biases.append(np.zeros((neurons_cur,1)))
+                self.weights.append(r.randn(neurons_cur,neurons_prev).astype(np.float32)*0.05)
+                self.biases.append(np.zeros((neurons_cur,1)).astype(np.float32))
                 neurons_prev = neurons_cur
         elif way == "Xavier":
             #normal xavier
             neurons_prev = self.n_features
             for neurons_cur in self.hidden_sizes:
                 sigma = np.sqrt(2/neurons_prev) if self.g_activation == 'ReLU' else np.sqrt(1/neurons_prev)
-                self.weights.append(r.randn(neurons_cur,neurons_prev)*sigma)
-                self.biases.append(np.zeros((neurons_cur,1)))
+                self.weights.append(r.randn(neurons_cur,neurons_prev).astype(np.float32)*sigma)
+                self.biases.append(np.zeros((neurons_cur,1)).astype(np.float32))
                 neurons_prev = neurons_cur
         
         elif way =="Custom":
@@ -196,6 +196,11 @@ class MyNeuralNetwork:
                     dw_batch, db_batch = self.backprop(X_batch,y_batch,y_hat,a_all,h_all)                   
                 assert len(dw_batch) == len(self.weights)
                 assert len(db_batch) == len(self.biases)
+
+                #mean_step
+
+                # dw_batch = [dw/batch_size for dw in dw_batch]
+                # db_batch = [db/batch_size for db in db_batch]
 
                 self.optimizer.update(self.weights, self.biases, dw_batch,db_batch)   
 

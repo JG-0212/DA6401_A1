@@ -72,7 +72,7 @@ def get_class_sample(data,labels,class_names = fashion_names, wb_verbose = False
 
 def preprocess(images):
     images = images.reshape((images.shape[0],-1))
-    images = images/255
+    images = images.astype('float32')/255.
     return images
 
 def one_hot_encoded(labels):
