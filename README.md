@@ -21,5 +21,6 @@ python run train.py -e 100 -b 2560 -f 1 #for reported best test performance
 ```
 
 ## Additional arguments ##
--rn --runname : gives a run name to the script
--f --fraction : fraction of train dataset to train on
+- -rn --runname : gives a run name to the script
+- -f --fraction : fraction of train dataset to train on
+- -cf --configfile : give the corresponding config file name (this is only for tune.py)
