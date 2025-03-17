@@ -18,6 +18,7 @@ Feel free to change the default hyperparamters to the full data version and veri
 ```python
 python run train.py
 python run train.py -e 100 -b 2560 -f 1 #for reported best test performance
+```
 
 ## Additional arguments ##
 -rn --runname : gives a run name to the script
