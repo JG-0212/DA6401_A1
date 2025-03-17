@@ -38,10 +38,4 @@ parameters:
 command:
   - dl_env\Scripts\python.exe
   - ${program}  
-  # - --learning_rate=${learning_rate}
-  # - --momentum=${momentum}
-  # - --batch_size=${batch_size}
-  # - --epochs=${epochs}
-  # - --activation=${activation}
-  # - --optimizer=${optimizer}
 

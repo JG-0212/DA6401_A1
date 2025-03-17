@@ -170,7 +170,7 @@ class MyNeuralNetwork:
         This function trains a neural network and learns the parameters
         '''
         batch_size = X_train.shape[0] if self.batch_size is None else self.batch_size      
-        self.print_metrics(X_train, y_train, X_valid, y_valid, 0, log = False)      
+        self.print_metrics(X_train, y_train, X_valid, y_valid, 0)      
         for epoch in range(1,epochs+1):
             batch_start = 0
             while batch_start <= X_train.shape[0]-1 :
@@ -195,7 +195,7 @@ class MyNeuralNetwork:
 
                 self.optimizer.update(self.weights, self.biases, dw_batch,db_batch)   
 
-            self.print_metrics(X_train, y_train, X_valid, y_valid, epoch, log = True)      
+            self.print_metrics(X_train, y_train, X_valid, y_valid, epoch)      
 
     def predict(self, X):
         '''
