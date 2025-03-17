@@ -11,6 +11,9 @@ fashion_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
 number_names = ['0','1','2','3','4','5','6','7','8','9']
 
 def load_data(name = 'fashion_mist'):
+    '''
+    This function loads the requested dataset and returns images and labels
+    '''
     if name == 'fashion_mnist':
         (train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
     elif name == 'mnist':
@@ -18,20 +21,10 @@ def load_data(name = 'fashion_mist'):
     return (train_images, train_labels), (test_images, test_labels)
 
 
-def plot_cm(y_pred, y_true, class_names = fashion_names, wb_verbose = False):
-    mat = (y_true.T@y_pred).astype(int)
-    sns.heatmap(mat.T, square=True, annot=True, fmt='d', cbar=False,
-            xticklabels=class_names, yticklabels=class_names,
-            cmap='Blues')
-    plt.xlabel('true label')
-    plt.ylabel('predicted label')
-    if wb_verbose == True:
-        wandb.log({"Confusion_matrix_report":wandb.Image(plt.gcf())})
-    else:
-        plt.show()
-    plt.clf
-
 def split_validation(X,y, valid_size = 0.1, seed = 42):
+    '''
+    This functions splits the data into train and validation stratifiedly
+    '''
     X_train, y_train, X_test, y_test = [],[],[],[]
     for i,ci in enumerate(np.unique(y)):
         indices = np.where(y==ci)[0]
@@ -44,6 +37,9 @@ def split_validation(X,y, valid_size = 0.1, seed = 42):
     return np.vstack(X_train), np.hstack(y_train), np.vstack(X_test), np.hstack(y_test)
 
 def get_class_sample(data,labels,class_names = fashion_names, wb_verbose = False):
+    '''
+    This function prints a sample of image from each class in a given dataset
+    '''
     classes = np.unique(labels)
     n_classes = classes.shape[0]
 
@@ -71,13 +67,35 @@ def get_class_sample(data,labels,class_names = fashion_names, wb_verbose = False
     plt.clf()
 
 def preprocess(images):
+    '''
+    This function preprocesses the images we recieve as input, reshaping and normalizing
+    '''
     images = images.reshape((images.shape[0],-1))
     images = images.astype('float32')/255.
     return images
 
 def one_hot_encoded(labels):
+    '''
+    This function one hot encodes the categorical labels
+    '''
     n_classes = np.size(np.unique(labels))
     out = np.zeros((labels.shape[0], n_classes))
     for i,l in enumerate(labels):
         out[i,l] = 1
     return out
+
+def plot_cm(y_pred, y_true, class_names = fashion_names, wb_verbose = False):
+    '''
+    This function pots the confusion matrix given true and predicted labels
+    '''
+    mat = (y_true.T@y_pred).astype(int)
+    sns.heatmap(mat.T, square=True, annot=True, fmt='d', cbar=False,
+            xticklabels=class_names, yticklabels=class_names,
+            cmap='Blues')
+    plt.xlabel('predicted label')
+    plt.ylabel('true label')
+    if wb_verbose == True:
+        wandb.log({"Confusion_matrix_report":wandb.Image(plt.gcf())})
+    else:
+        plt.show()
+    plt.clf

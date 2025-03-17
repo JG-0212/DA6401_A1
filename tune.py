@@ -5,17 +5,28 @@ from Activations import *
 import yaml
 import wandb
 import matplotlib.pyplot as plt
+import argparse
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-cf","--configfile", default = "config_grid.yaml", type=str)
+    args = parser.parse_args()  
+    return args
 
 if __name__ == '__main__':
+
+    args = get_args()
     #Loading and processing the data
     (train_images, train_labels), (test_images, test_labels)   =  load_data(name = 'fashion_mnist')
     train_images, train_labels, valid_images, valid_labels = split_validation(train_images, train_labels, valid_size=0.1, seed = 42)
+
+    #Using 5 percent of the data
     train_images, train_labels,_,_ = split_validation(train_images, train_labels, valid_size=0.95, seed = 42)
     X_train, X_valid, X_test = preprocess(train_images), preprocess(valid_images), preprocess(test_images)
     y_train, y_valid, y_test = one_hot_encoded(train_labels), one_hot_encoded(valid_labels), one_hot_encoded(test_labels)
 
     #Reading the config file
-    with open("./config_fine.yaml") as file:
+    with open(args.configfile) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
     
     run = wandb.init(config=config)

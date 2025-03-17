@@ -70,9 +70,6 @@ class MyNeuralNetwork:
     def feed_forward(self,input):
         '''
         This function does a forward pass and returns the output probabilities, activations and pre_activations for a data point 
-
-        input : (n_samples, n_features) 
-        out : (n_samples, n_classes)
         '''
         a_all = []
         h_all = []
@@ -89,13 +86,9 @@ class MyNeuralNetwork:
         assert out.shape == (input.shape[0],self.n_classes)
         return out,a_all,h_all
 
-    def  backprop(self, input, true_dist, y_hat, a_all, h_all,w_lookahead = None):
+    def backprop(self, input, true_dist, y_hat, a_all, h_all,w_lookahead = None):
         '''
-        This function does back_propagation and gives the weight and bias gradients for a data point      
-
-        input : (n_samples, n_features)
-        true_distn : (n_samples, n_classes)
-        y_hat : (n_samples, n_classes)      
+        This function does back_propagation and returns the weight and bias gradients for a data point           
         '''
         weight_grads = []
         bias_grads = []
@@ -135,7 +128,10 @@ class MyNeuralNetwork:
             assert bias_grads[i].shape == self.biases[i].shape
         return weight_grads, bias_grads
     
-    def print_metrics(self, X_train, y_train, X_valid, y_valid, epoch, log = False):
+    def print_metrics(self, X_train, y_train, X_valid, y_valid, epoch):
+        '''
+        This function prints the metrics for predictions at any instance
+        '''
         epsilon =1e-8
         
         y_hat_t,_,_ = self.feed_forward(X_train)  #(n_samples, n_classes)
@@ -197,18 +193,19 @@ class MyNeuralNetwork:
                 assert len(dw_batch) == len(self.weights)
                 assert len(db_batch) == len(self.biases)
 
-                #mean_step
-
-                # dw_batch = [dw/batch_size for dw in dw_batch]
-                # db_batch = [db/batch_size for db in db_batch]
-
                 self.optimizer.update(self.weights, self.biases, dw_batch,db_batch)   
 
             self.print_metrics(X_train, y_train, X_valid, y_valid, epoch, log = True)      
 
     def predict(self, X):
+        '''
+        This function returns the prediction given any data vector
+        '''
         y_hat,_,_ = self.feed_forward(X)
         return y_hat
 
     def clear_opt_history(self):
+        '''
+        This function clears the history of gradients stored in the optimizer
+        '''
         self.optimizer.clear_history()   
