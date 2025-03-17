@@ -1,6 +1,9 @@
 ## Wandb link ##
 https://wandb.ai/jayagowtham-indian-institute-of-technology-madras/DA6401/reports/ME21B078-DA6401-Assignment-1--VmlldzoxMTYxMzUxMQ?accessToken=dpsjjex0venn08lem74b8vk2ysvtjige1alfxjzhdt7dj05m3bil21pgu050ry87
 
+## Github link ##
+https://github.com/JG-0212/DA6401_A1.git
+
 ## Description ##
 The repository contains
 - NeuralNetwork.py : Contains the network and training related functions
